@@ -10,18 +10,34 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
-    public void run() {
+	private final long TARGETING_TIME = 5;
+	private long lastTimeSeen;
+
+    public void run() 
+	{
 
         initialize();
 
-        while (true){
-            ahead(100);
-            turnRight(90);
-        }
+       while (true)
+		{
+       		if(getTime() - lastTimeSeen > TARGETING_TIME)
+			{
+				turnRadarRight(360);
+			}	
+			else
+			{
+				scan();
+			}
+       }
     }
 
-    public void onScannedRobot(ScannedRobotEvent e){
-        fire(1);
+    public void onScannedRobot(ScannedRobotEvent e)
+	{
+		lastTimeSeen = getTime();
+		
+		double absoluteBearing = getHeading() + e.getBearing();
+		turnGunRight(absoluteBearing - getGunHeading());
+       fire(1);
     }
 
     public void onHitRobot(HitRobotEvent e){
