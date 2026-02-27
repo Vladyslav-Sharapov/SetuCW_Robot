@@ -185,5 +185,24 @@ public class Potujniy extends Robot{
         this.setScanColor(new Color(0xCA, 0xFF, 0x70)); // Olive
     }
 
-
+    public void moveToPosition(double endPosX, double endPosY)
+	{
+		double directionX = endPosX - getX();
+		double directionY = endPosY - getY();
+		
+		double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
+		double angleTurn = angle - getHeading();
+		if(angleTurn > 360)
+		{
+			angleTurn -= 360;
+		}
+		if(angleTurn < -360)
+		{
+			angleTurn += 360;
+		}
+		turnRight(angleTurn);
+		
+		double distance = Math.sqrt(directionX * directionX + directionY * directionY);
+		ahead(distance);
+	}
 }// end of class
