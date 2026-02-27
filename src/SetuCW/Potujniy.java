@@ -47,23 +47,26 @@ public class Potujniy extends Robot{
 
             this.eDistance = sre.getDistance();
 		
-		        double absoluteBearing = getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
-		        double turnGun = normalizeAngle(absoluteBearing - getGunHeading());
+		        double absoluteBearing =  this.getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
+		        double turnGun =  this.normalizeAngle(absoluteBearing -  this.getGunHeading());
           
-            turnGunRight(turnGun);
+            this.turnGunRight(turnGun);
+            this.calculateFirePower();
 
-            // This is a targeting algorithm that calculates the optimal firepower based on the distance to the enemy robot
-            if (this.pGunHeat == 0 && this.pEnergy > 0) {
+        }
+    }
 
-                double distance = Math.max(1.0F, this.eDistance);
-                double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
+    /**
+     * This is a targeting algorithm that calculates the optimal firepower based on the distance to the enemy robot
+     */
+    private void calculateFirePower() {
+        if (this.pGunHeat == 0 && this.pEnergy > 0) {
 
-                System.out.println("Distance = " + distance);
-                System.out.println("firePower = " + firePower);
+            double distance = Math.max(1.0F, this.eDistance);
+            double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
 
-                this.fire(firePower);
+            this.fire(firePower);
 
-            }
         }
     }
 
