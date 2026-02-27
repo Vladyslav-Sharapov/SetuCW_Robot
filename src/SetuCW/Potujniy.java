@@ -27,8 +27,8 @@ public class Potujniy extends Robot{
         this.initialize();
         this.scanTowardsCentre();
 
-       while (true)
-		{
+    while (true)
+	{
        		if(getTime() - this.lastTimeSeen > this.TARGETING_TIME)
 			{
 				this.scanTowardsCentre();
@@ -43,31 +43,27 @@ public class Potujniy extends Robot{
     public void onScannedRobot(ScannedRobotEvent sre)
 	{
         if(!sre.isSentryRobot()) {
-            this.lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
+            lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
 
-            this.eDistance = sre.getDistance();
+            eDistance = sre.getDistance();
 		
-		        double absoluteBearing =  this.getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
-		        double turnGun =  this.normalizeAngle(absoluteBearing -  this.getGunHeading());
+		    double absoluteBearing =  this.getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
+		    double turnGun =  this.normalizeAngle(absoluteBearing -  this.getGunHeading());//Calculates the target angle to rotatate gun
           
-            this.turnGunRight(turnGun);
-            this.calculateFirePower();
-
+            turnGunRight(turnGun);
+            fire(calculateFirePower());
         }
     }
 
     /**
-     * This is a targeting algorithm that calculates the optimal firepower based on the distance to the enemy robot
+     * This is an algorithm that calculates the optimal firepower based on the distance to the enemy robot
      */
-    private void calculateFirePower() {
-        if (this.pGunHeat == 0 && this.pEnergy > 0) {
+    private double calculateFirePower()
+    {
+        double distance = Math.max(1.0F, this.eDistance);
+        double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
 
-            double distance = Math.max(1.0F, this.eDistance);
-            double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
-
-            this.fire(firePower);
-
-        }
+        return firePower;
     }
 
     public void onHitRobot(HitRobotEvent hre){
