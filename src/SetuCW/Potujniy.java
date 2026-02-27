@@ -5,7 +5,7 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
-	private final long TARGETING_TIME = 5;
+	private final long TARGETING_TIME = 15;
 	private long lastTimeSeen;
     final double BATTLE_FIELD_WIDTH = getBattleFieldWidth();
     final double BATTLE_FIELD_HEIGHT = getBattleFieldHeight();
@@ -43,12 +43,14 @@ public class Potujniy extends Robot{
     public void onScannedRobot(ScannedRobotEvent sre)
 	{
         if(!sre.isSentryRobot()) {
-            this.lastTimeSeen = getTime();
+            this.lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
 
             this.eDistance = sre.getDistance();
-
-            double absoluteBearing = this.getHeading() + sre.getBearing();
-            this.turnGunRight(absoluteBearing - this.getGunHeading());
+		
+		        double absoluteBearing = getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
+		        double turnGun = normalizeAngle(absoluteBearing - getGunHeading());
+          
+            turnGunRight(turnGun);
 
             // This is a targeting algorithm that calculates the optimal firepower based on the distance to the enemy robot
             if (this.pGunHeat == 0 && this.pEnergy > 0) {
@@ -68,12 +70,17 @@ public class Potujniy extends Robot{
     public void onHitRobot(HitRobotEvent hre){
         this.turnRight(180);
     }
+	
+	private double normalizeAngle(double angle)
+	{
+		return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
+	}
 
     public void onHitByBullet(HitByBulletEvent hbe){
-        this.turnRight(180);
+        // this.turnRight(180);
     }
     public void onHitWall(HitWallEvent hwe){
-        this.turnRight(180);
+        // this.turnRight(180);
     }
 
     public void onStatus(StatusEvent se) {
