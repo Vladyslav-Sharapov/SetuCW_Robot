@@ -10,7 +10,7 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
-	private final long TARGETING_TIME = 5;
+	private final long TARGETING_TIME = 15;
 	private long lastTimeSeen;
 
     public void run() 
@@ -33,22 +33,30 @@ public class Potujniy extends Robot{
 
     public void onScannedRobot(ScannedRobotEvent e)
 	{
-		lastTimeSeen = getTime();
+		lastTimeSeen = getTime();//Updates time stamp when an enemy was seen last time
 		
-		double absoluteBearing = getHeading() + e.getBearing();
-		turnGunRight(absoluteBearing - getGunHeading());
+		double absoluteBearing = getHeading() + e.getBearing();//Calculates absolute bearing to the enemy
+		double turnGun = normalizeAngle(absoluteBearing - getGunHeading());
+
+		turnGunRight(turnGun);
+		
        fire(1);
     }
+	
+	private double normalizeAngle(double angle)
+	{
+		return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
+	}
 
     public void onHitRobot(HitRobotEvent e){
-        turnRight(180);
+        //turnRight(180);
     }
 
     public void onHitByBullet(HitByBulletEvent e){
-        turnRight(180);
+        //turnRight(180);
     }
     public void onHitWall(HitWallEvent e){
-        turnRight(180);
+        //turnRight(180);
     }
 
     private void initialize() {
