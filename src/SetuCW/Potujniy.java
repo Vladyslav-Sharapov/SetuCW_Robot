@@ -20,6 +20,8 @@ public class Potujniy extends Robot{
     double pRadarHeading;
 
     // Targeting variables
+    double eX;
+    double eY;
     double eDistance;
 
     public void run() 
@@ -36,8 +38,7 @@ public class Potujniy extends Robot{
 			}	
 			else
 			{
-                ahead(100);
-                back(100);
+                moveToPosition(400, 400);
 			}
        }
     }
@@ -48,16 +49,15 @@ public class Potujniy extends Robot{
             lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
 
             eDistance = sre.getDistance();
+
+
 		
 		    double absoluteBearing =  getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
+
+            this.eX = this.pX + Math.cos(Math.toRadians(absoluteBearing)) * eDistance;
+            this.eY = this.pY + Math.sin(Math.toRadians(absoluteBearing)) * eDistance;
+
 		    double turnGun =  normalizeAngle(absoluteBearing - getGunHeading());//Calculates the target angle to rotatate gun
-//            if (turnGun >= 360)
-//            {
-//                turnGun -= 360;
-//            } else if (turnGun <= -360)
-//            {
-//                turnGun += 360;
-//            }
 
             System.out.println(turnGun);
             turnGunRight(turnGun);
@@ -179,11 +179,11 @@ public class Potujniy extends Robot{
 
     public void moveToPosition(double endPosX, double endPosY)
 	{
-		double directionX = endPosX - getX();
-		double directionY = endPosY - getY();
+		double directionX = endPosX - pX;
+		double directionY = endPosY - pY;
 		
 		double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
-		double angleTurn = angle - getHeading();
+		double angleTurn = angle - pHeading;
 		if(angleTurn > 360)
 		{
 			angleTurn -= 360;
