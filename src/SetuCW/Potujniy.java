@@ -5,7 +5,7 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
-	private final long TARGETING_TIME = 15;
+	private final long TARGETING_TIME = 30;
 	private long lastTimeSeen;
     final double BATTLE_FIELD_WIDTH = 800.0F;
     final double BATTLE_FIELD_HEIGHT = 800.0F;
@@ -15,6 +15,7 @@ public class Potujniy extends Robot{
     double pY;
     double pEnergy;
     double pGunHeat;
+    double pGunHeading;
     double pHeading;
     double pRadarHeading;
 
@@ -24,18 +25,19 @@ public class Potujniy extends Robot{
     public void run() 
 	{
 
-        this.initialize();
-        this.scanTowardsCentre();
+        initialize();
+        scanTowardsCentre();
 
     while (true)
 	{
-       		if(getTime() - this.lastTimeSeen > this.TARGETING_TIME)
+       		if(getTime() - lastTimeSeen > TARGETING_TIME)
 			{
-				this.scanTowardsCentre();
+				scanTowardsCentre();
 			}	
 			else
 			{
-				this.scan();
+                ahead(100);
+                back(100);
 			}
        }
     }
@@ -47,9 +49,17 @@ public class Potujniy extends Robot{
 
             eDistance = sre.getDistance();
 		
-		    double absoluteBearing =  this.getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
-		    double turnGun =  this.normalizeAngle(absoluteBearing -  this.getGunHeading());//Calculates the target angle to rotatate gun
-          
+		    double absoluteBearing =  getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
+		    double turnGun =  normalizeAngle(absoluteBearing - getGunHeading());//Calculates the target angle to rotatate gun
+//            if (turnGun >= 360)
+//            {
+//                turnGun -= 360;
+//            } else if (turnGun <= -360)
+//            {
+//                turnGun += 360;
+//            }
+
+            System.out.println(turnGun);
             turnGunRight(turnGun);
             fire(calculateFirePower());
         }
@@ -60,10 +70,8 @@ public class Potujniy extends Robot{
      */
     private double calculateFirePower()
     {
-        double distance = Math.max(1.0F, this.eDistance);
-        double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
-
-        return firePower;
+        double distance = Math.max(1.0F, eDistance);
+        return Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
     }
 
     public void onHitRobot(HitRobotEvent hre){
@@ -85,12 +93,13 @@ public class Potujniy extends Robot{
     public void onStatus(StatusEvent se) {
         RobotStatus status = se.getStatus();
 
-        this.pX = status.getX();
-        this.pY = status.getY();
-        this.pEnergy = status.getEnergy();
-        this.pGunHeat = status.getGunHeat();
-        this.pHeading = this.convertToProperDegrees(status.getHeading());
-        this.pRadarHeading = this.convertToProperDegrees(status.getRadarHeading());
+        pX = status.getX();
+        pY = status.getY();
+        pEnergy = status.getEnergy();
+        pGunHeat = status.getGunHeat();
+        pGunHeading = status.getGunHeading();
+        pHeading = normalizeAngle(status.getHeading());
+        pRadarHeading = normalizeAngle(status.getRadarHeading());
     }
 
     /**
@@ -151,23 +160,6 @@ public class Potujniy extends Robot{
         double relative_y = poY - fromY;
         double point_degrees = Math.toDegrees(Math.atan2(relative_y, relative_x));
         return getTurnAmount(point_degrees, thingHeading);
-    }
-
-    /**
-     * Converts a heading angle from Robocode's coordinate system to a standard Cartesian coordinate system.
-     * In Robocode, the heading is measured clockwise from "up" (0 degrees), whereas in Cartesian coordinates,
-     * 0 degrees corresponds to the positive x-axis and angles increase counterclockwise.
-     *
-     * @param robocodeHeading the heading angle in degrees, as measured in Robocode's coordinate system
-     * @return the equivalent angle in degrees in a standard Cartesian coordinate system
-     */
-    private double convertToProperDegrees(double robocodeHeading) {
-        double cartesianAngle = 90.0 - robocodeHeading;
-        if (cartesianAngle < 0.0) {
-            cartesianAngle += 360.0;
-        }
-
-        return cartesianAngle;
     }
 
     /**
