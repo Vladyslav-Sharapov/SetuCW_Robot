@@ -7,8 +7,8 @@ public class Potujniy extends Robot{
 
 	private final long TARGETING_TIME = 15;
 	private long lastTimeSeen;
-    final double BATTLE_FIELD_WIDTH = getBattleFieldWidth();
-    final double BATTLE_FIELD_HEIGHT = getBattleFieldHeight();
+    final double BATTLE_FIELD_WIDTH = 800.0F;
+    final double BATTLE_FIELD_HEIGHT = 800.0F;
 
     // Potujniy's variables, where p is short for Potujniy.
     double pX;
