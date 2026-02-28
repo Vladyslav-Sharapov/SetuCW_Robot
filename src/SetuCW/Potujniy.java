@@ -5,8 +5,6 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
-	private final long TARGETING_TIME = 15;
-	private long lastTimeSeen;
     final double BATTLE_FIELD_WIDTH = 800.0F;
     final double BATTLE_FIELD_HEIGHT = 800.0F;
 
@@ -15,69 +13,88 @@ public class Potujniy extends Robot{
     double pY;
     double pEnergy;
     double pGunHeat;
+    double pGunHeading;
     double pHeading;
     double pRadarHeading;
+    double eDirection;
 
     // Targeting variables
+    double eX;
+    double eY;
     double eDistance;
 
-    public void run() 
-	{
+    int moveCount = 0;
 
-        this.initialize();
-        this.scanTowardsCentre();
+    public void run()
+    {
 
-    while (true)
-	{
-       		if(getTime() - this.lastTimeSeen > this.TARGETING_TIME)
-			{
-				this.scanTowardsCentre();
-			}	
-			else
-			{
-				this.scan();
-			}
-       }
+        initialize();
+        scanTowardsCentre();
+        moveToPosition(400, 400);
+
+        while (true)
+        {
+            moveCount++;
+            if(moveCount >= 2)
+            {
+                scanTowardsCentre();
+            }
+            else
+            {
+                ahead(100);
+                back(100);
+            }
+        }
     }
 
     public void onScannedRobot(ScannedRobotEvent sre)
-	{
+    {
         if(!sre.isSentryRobot()) {
-            lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
+            moveCount = 0;
 
             eDistance = sre.getDistance();
-		
-		    double absoluteBearing =  this.getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
-		    double turnGun =  this.normalizeAngle(absoluteBearing -  this.getGunHeading());//Calculates the target angle to rotatate gun
-          
-            turnGunRight(turnGun);
+            eDirection = pHeading - sre.getBearing();
+            if (eDirection >= 360)
+            {
+                eDirection -= 360;
+            }
+
+            this.eX = this.pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
+            this.eY = this.pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
+
+            turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
             fire(calculateFirePower());
         }
     }
 
     /**
-     * This is an algorithm that calculates the optimal firepower based on the distance to the enemy robot
+     * Calculates the firepower of the robot based on the distance to the target.
+     * The firepower is dynamically adjusted to balance between energy conservation
+     * and effective damage. The calculation ensures that the firepower remains
+     * within a specific range, with higher firepower applied for closer distances
+     * and lower firepower for farther distances.
+     *
+     * @return the calculated firepower value, clamped between 0.1 and 3.0.
      */
     private double calculateFirePower()
     {
-        double distance = Math.max(1.0F, this.eDistance);
-        double firePower = Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
-
-        return firePower;
+        double distance = Math.max(1.0F, eDistance);
+        return Math.min(3.0F, Math.max(0.1F, (300.0F / distance) * 3.0F));
     }
 
     public void onHitRobot(HitRobotEvent hre){
-        this.turnRight(180);
-    }
-	
-	private double normalizeAngle(double angle)
-	{
-		return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
-	}
-
-    public void onHitByBullet(HitByBulletEvent hbe){
         // this.turnRight(180);
     }
+
+    private double normalizeAngle(double angle)
+    {
+        return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
+    }
+
+    public void onHitByBullet(HitByBulletEvent hbbe) {
+
+    }
+
     public void onHitWall(HitWallEvent hwe){
         // this.turnRight(180);
     }
@@ -85,12 +102,13 @@ public class Potujniy extends Robot{
     public void onStatus(StatusEvent se) {
         RobotStatus status = se.getStatus();
 
-        this.pX = status.getX();
-        this.pY = status.getY();
-        this.pEnergy = status.getEnergy();
-        this.pGunHeat = status.getGunHeat();
-        this.pHeading = this.convertToProperDegrees(status.getHeading());
-        this.pRadarHeading = this.convertToProperDegrees(status.getRadarHeading());
+        pX = status.getX();
+        pY = status.getY();
+        pEnergy = status.getEnergy();
+        pGunHeat = status.getGunHeat();
+        pGunHeading = convertToProperDegrees(status.getGunHeading());
+        pHeading = convertToProperDegrees(status.getHeading());
+        pRadarHeading = convertToProperDegrees(status.getRadarHeading());
     }
 
     /**
@@ -154,20 +172,33 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Converts a heading angle from Robocode's coordinate system to a standard Cartesian coordinate system.
-     * In Robocode, the heading is measured clockwise from "up" (0 degrees), whereas in Cartesian coordinates,
-     * 0 degrees corresponds to the positive x-axis and angles increase counterclockwise.
+     * Converts a given input angle in degrees to a "proper" angle in accordance
+     * with a specific transformation logic. The transformation adjusts the input
+     * angle such that standard angles are remapped to match desired values.
      *
-     * @param robocodeHeading the heading angle in degrees, as measured in Robocode's coordinate system
-     * @return the equivalent angle in degrees in a standard Cartesian coordinate system
+     * @param silly_Degrees the input angle in degrees, representing the original
+     *                      angle to be converted.
+     * @return the properly transformed angle in degrees, normalized to ensure
+     *         it is within the range of [0, 360).
      */
-    private double convertToProperDegrees(double robocodeHeading) {
-        double cartesianAngle = 90.0 - robocodeHeading;
-        if (cartesianAngle < 0.0) {
-            cartesianAngle += 360.0;
-        }
+    private double convertToProperDegrees(double silly_Degrees)
+    {
+		/*silly_Degrees == 0 => proper_degrees == 90
+		silly_Degrees == 90 => proper_degrees == 0
+		silly_Degrees == 270 => proper_degrees == 180
+		silly_Degrees == 180 => proper_degrees == 270
+		silly_Degrees == 45 => proper_degrees == 45
+		silly_Degrees == 135 => proper_degrees == 315
+		silly_Degrees == 225 => proper_degrees == 225
+		silly_Degrees == 315 => proper_degrees == 135*/
 
-        return cartesianAngle;
+        double proper_degrees = 90 - silly_Degrees;
+
+        if (proper_degrees < 0)
+        {
+            proper_degrees += 360;
+        }
+        return proper_degrees;
     }
 
     /**
@@ -186,23 +217,23 @@ public class Potujniy extends Robot{
     }
 
     public void moveToPosition(double endPosX, double endPosY)
-	{
-		double directionX = endPosX - getX();
-		double directionY = endPosY - getY();
-		
-		double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
-		double angleTurn = angle - getHeading();
-		if(angleTurn > 360)
-		{
-			angleTurn -= 360;
-		}
-		if(angleTurn < -360)
-		{
-			angleTurn += 360;
-		}
-		turnRight(angleTurn);
-		
-		double distance = Math.sqrt(directionX * directionX + directionY * directionY);
-		ahead(distance);
-	}
+    {
+        double directionX = endPosX - pX;
+        double directionY = endPosY - pY;
+
+        double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
+        double angleTurn = angle - pHeading;
+        if(angleTurn > 360)
+        {
+            angleTurn -= 360;
+        }
+        if(angleTurn < -360)
+        {
+            angleTurn += 360;
+        }
+        turnRight(angleTurn);
+
+        double distance = Math.sqrt(directionX * directionX + directionY * directionY);
+        ahead(distance);
+    }
 }// end of class
