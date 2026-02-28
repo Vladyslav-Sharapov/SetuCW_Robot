@@ -31,18 +31,20 @@ public class Potujniy extends Robot{
         initialize();
         scanTowardsCentre();
         moveToPosition(400, 400);
+        scanTowardsCentre();
 
         while (true)
         {
-            moveCount++;
             if(moveCount >= 2)
             {
                 scanTowardsCentre();
             }
             else
             {
-                ahead(100);
-                back(100);
+                moveToPosition(465, 465);
+                moveToPosition(335, 465);
+                moveToPosition(335, 335);
+                moveToPosition(465, 335);
             }
         }
     }
@@ -54,16 +56,20 @@ public class Potujniy extends Robot{
 
             eDistance = sre.getDistance();
             eDirection = pHeading - sre.getBearing();
-            if (eDirection >= 360)
-            {
+            if (eDirection >= 360) {
                 eDirection -= 360;
             }
 
             this.eX = this.pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
             this.eY = this.pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
+            double abc = Math.abs(this.returnDegreesDifference(this.eX, this.eY, this.pX, this.pY, this.pGunHeading));
+            if (abc > 1.0F) {
+                turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
+            }
 
-            turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
-            fire(calculateFirePower());
+            if (pGunHeat == 0) {
+                fire(calculateFirePower());
+            }
         }
     }
 
@@ -213,7 +219,14 @@ public class Potujniy extends Robot{
         this.setGunColor(new Color(0x32, 0x00, 0x00)); // Dark Red
         this.setRadarColor(new Color(0xFF, 0x00, 0x00)); // Red
         this.setBulletColor(new Color(0xFF, 0xD3, 0x9B)); // Burly wood
-        this.setScanColor(new Color(0xCA, 0xFF, 0x70)); // Olive
+        this.setScanColor(new Color(255, 255, 255)); // Olive
+    }
+
+    public void onWin(WinEvent we)
+    {
+        setBodyColor(Color.YELLOW);
+        setGunColor(Color.BLUE);
+        setRadarColor(Color.BLUE);
     }
 
     public void moveToPosition(double endPosX, double endPosY)
@@ -222,7 +235,7 @@ public class Potujniy extends Robot{
         double directionY = endPosY - pY;
 
         double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
-        double angleTurn = angle - pHeading;
+        double angleTurn = angle - getHeading();
         if(angleTurn > 360)
         {
             angleTurn -= 360;
