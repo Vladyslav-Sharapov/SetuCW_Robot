@@ -24,6 +24,7 @@ public class Potujniy extends Robot{
     double eDistance;
 
     int moveCount = 0;
+    int moveCount2 = 0;
 
     public void run()
     {
@@ -41,14 +42,44 @@ public class Potujniy extends Robot{
             }
             else
             {
-                moveToPosition(465, 465);
-                moveToPosition(335, 465);
-                moveToPosition(335, 335);
-                moveToPosition(465, 335);
+                squareMove();
             }
+            moveCount++;
+
         }
     }
 
+    /**
+     *
+     */
+    private void squareMove()
+    {
+        switch (moveCount2) {
+            case 0:
+                moveToPosition(465, 465);
+                moveCount2++;
+                break;
+            case 1:
+                moveToPosition(335, 465);
+                moveCount2++;
+                break;
+            case 2:
+                moveToPosition(335, 335);
+                moveCount2++;
+                break;
+            case 3:
+                moveToPosition(465, 335);
+                moveCount2 = 0;
+                break;
+
+        }
+
+    }
+
+    /**
+     *
+     * @param sre
+     */
     public void onScannedRobot(ScannedRobotEvent sre)
     {
         if(!sre.isSentryRobot()) {
@@ -60,9 +91,9 @@ public class Potujniy extends Robot{
                 eDirection -= 360;
             }
 
-            this.eX = this.pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
-            this.eY = this.pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
-            double abc = Math.abs(this.returnDegreesDifference(this.eX, this.eY, this.pX, this.pY, this.pGunHeading));
+            eX = pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
+            eY = pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
+            double abc = Math.abs(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
             if (abc > 1.0F) {
                 turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
             }
@@ -74,13 +105,8 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Calculates the firepower of the robot based on the distance to the target.
-     * The firepower is dynamically adjusted to balance between energy conservation
-     * and effective damage. The calculation ensures that the firepower remains
-     * within a specific range, with higher firepower applied for closer distances
-     * and lower firepower for farther distances.
      *
-     * @return the calculated firepower value, clamped between 0.1 and 3.0.
+     * @return
      */
     private double calculateFirePower()
     {
@@ -88,23 +114,10 @@ public class Potujniy extends Robot{
         return Math.min(3.0F, Math.max(0.1F, (300.0F / distance) * 3.0F));
     }
 
-    public void onHitRobot(HitRobotEvent hre){
-        // this.turnRight(180);
-    }
-
-    private double normalizeAngle(double angle)
-    {
-        return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
-    }
-
-    public void onHitByBullet(HitByBulletEvent hbbe) {
-
-    }
-
-    public void onHitWall(HitWallEvent hwe){
-        // this.turnRight(180);
-    }
-
+    /**
+     *
+     * @param se
+     */
     public void onStatus(StatusEvent se) {
         RobotStatus status = se.getStatus();
 
@@ -118,110 +131,88 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Rotates the radar towards the center of the battlefield by calculating the shortest angular
-     * difference required to align the radar's current heading with the direction of the center.
-     * ---------------------------
-     * The method determines the angular difference between the robot's radar heading and the
-     * direction of the battlefield center using the `returnDegressDifference` helper method.
-     * It then applies a full 360-degree sweep to the radar in the calculated direction.
+     *
      */
     private void scanTowardsCentre()
     {
-        double degrees_difference = returnDegreesDifference((BATTLE_FIELD_WIDTH / 2), (BATTLE_FIELD_HEIGHT / 2), pX, pY, pRadarHeading);
-        turnRadarLeft(360 * (degrees_difference / Math.abs(degrees_difference)));
+        double degreesDifference = returnDegreesDifference((BATTLE_FIELD_WIDTH / 2), (BATTLE_FIELD_HEIGHT / 2), pX, pY, pRadarHeading);
+        turnRadarLeft(360 * (degreesDifference / Math.abs(degreesDifference)));
     }
 
     /**
-     * Calculates the shortest turn amount in degrees between two angles,
-     * ensuring the result is within the range of -180 to 180 degrees.
      *
-     * @param end_Degree   the target angle in degrees
-     * @param start_Degree the starting angle in degrees
-     * @return the shortest turn amount in degrees to reach the target angle
-     *         from the starting angle
+     * @param endDegree
+     * @param startDegree
+     * @return
      */
-    private double getTurnAmount(double end_Degree, double start_Degree)
+    private double getTurnAmount(double endDegree, double startDegree)
     {
-        double turn_amount = end_Degree - start_Degree;
+        double turnAmount = endDegree - startDegree;
 
-        if (turn_amount > 180)
+        if (turnAmount > 180)
         {
-            turn_amount -= 360;
+            turnAmount -= 360;
         }
-        else if (turn_amount < -180)
+        else if (turnAmount < -180)
         {
-            turn_amount += 360;
+            turnAmount += 360;
         }
 
-        return turn_amount;
+        return turnAmount;
     }
 
     /**
-     * Calculates the angular difference in degrees between a point and the heading of a reference object.
-     * The angular difference is derived by determining the shortest turn amount required to align the
-     * heading with the direction of the point.
      *
-     * @param poX the x-coordinate of the point of interest
-     * @param poY the y-coordinate of the point of interest
-     * @param fromX the x-coordinate of the reference object's position
-     * @param fromY the y-coordinate of the reference object's position
-     * @param thingHeading the current heading angle of the reference object in degrees
-     * @return the shortest turn amount in degrees to align the reference object's heading
-     *         with the direction of the point
+     * @param endX
+     * @param endY
+     * @param originX
+     * @param originY
+     * @param currentHeading
+     * @return
      */
-    private double returnDegreesDifference(double poX, double poY, double fromX, double fromY, double thingHeading)
+    private double returnDegreesDifference(double endX, double endY, double originX, double originY, double currentHeading)
     {
-        double relative_x = poX - fromX;
-        double relative_y = poY - fromY;
-        double point_degrees = Math.toDegrees(Math.atan2(relative_y, relative_x));
-        return getTurnAmount(point_degrees, thingHeading);
+        double relativeX = endX - originX;
+        double relativeY = endY - originY;
+        double pointDegrees = Math.toDegrees(Math.atan2(relativeY, relativeX));
+        return getTurnAmount(pointDegrees, currentHeading);
     }
 
     /**
-     * Converts a given input angle in degrees to a "proper" angle in accordance
-     * with a specific transformation logic. The transformation adjusts the input
-     * angle such that standard angles are remapped to match desired values.
      *
-     * @param silly_Degrees the input angle in degrees, representing the original
-     *                      angle to be converted.
-     * @return the properly transformed angle in degrees, normalized to ensure
-     *         it is within the range of [0, 360).
+     * @param degrees
+     * @return
      */
-    private double convertToProperDegrees(double silly_Degrees)
+    private double convertToProperDegrees(double degrees)
     {
-		/*silly_Degrees == 0 => proper_degrees == 90
-		silly_Degrees == 90 => proper_degrees == 0
-		silly_Degrees == 270 => proper_degrees == 180
-		silly_Degrees == 180 => proper_degrees == 270
-		silly_Degrees == 45 => proper_degrees == 45
-		silly_Degrees == 135 => proper_degrees == 315
-		silly_Degrees == 225 => proper_degrees == 225
-		silly_Degrees == 315 => proper_degrees == 135*/
+        double properDegrees = 90 - degrees;
 
-        double proper_degrees = 90 - silly_Degrees;
-
-        if (proper_degrees < 0)
+        if (properDegrees < 0)
         {
-            proper_degrees += 360;
+            properDegrees += 360;
         }
-        return proper_degrees;
+        return properDegrees;
     }
 
     /**
-     * Initializes the robot's configuration and settings during startup.
+     *
      */
     private void initialize() {
         // Let
-        this.setAdjustGunForRobotTurn(true);
+        setAdjustGunForRobotTurn(true);
 
         // Set robot colors
-        this.setBodyColor(new Color(0x00, 0x00, 0x00)); // Black
-        this.setGunColor(new Color(0x32, 0x00, 0x00)); // Dark Red
-        this.setRadarColor(new Color(0xFF, 0x00, 0x00)); // Red
-        this.setBulletColor(new Color(0xFF, 0xD3, 0x9B)); // Burly wood
-        this.setScanColor(new Color(255, 255, 255)); // Olive
+        setBodyColor(new Color(0x00, 0x00, 0x00)); // Black
+        setGunColor(new Color(0x32, 0x00, 0x00)); // Dark Red
+        setRadarColor(new Color(0xFF, 0x00, 0x00)); // Red
+        setBulletColor(new Color(0xFF, 0xD3, 0x9B)); // Burly wood
+        setScanColor(new Color(255, 255, 255)); // White
     }
 
+    /**
+     *
+     * @param we
+     */
     public void onWin(WinEvent we)
     {
         setBodyColor(Color.YELLOW);
@@ -229,6 +220,11 @@ public class Potujniy extends Robot{
         setRadarColor(Color.BLUE);
     }
 
+    /**
+     *
+     * @param endPosX
+     * @param endPosY
+     */
     public void moveToPosition(double endPosX, double endPosY)
     {
         double directionX = endPosX - pX;
