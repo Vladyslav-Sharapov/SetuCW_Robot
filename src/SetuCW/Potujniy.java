@@ -1,5 +1,11 @@
 package SetuCW;
 
+// Created by:
+// Vladyslav Sharapov,
+// Vladyslav Amelin,
+// Andrii Russkykh
+// For Games Fleadh 2026
+
 import java.awt.Color;
 import robocode.*;
 
@@ -9,7 +15,7 @@ public class Potujniy extends Robot{
     final double BATTLE_FIELD_WIDTH = 800.0F;
     final double BATTLE_FIELD_HEIGHT = 800.0F;
 
-    // Potujniy's variables, where p is short for Potujniy.
+    // Potujniy's variables, wh ere p is short for Potujniy.
     double pX;
     double pY;
     double pEnergy;
@@ -38,7 +44,7 @@ public class Potujniy extends Robot{
 
         while (true)
         {
-            // If robot has moved 2 times and hasn't seen any enemies
+            // If Robot has moved 2 times and hasn't seen any enemies,
             // it will scan towards the centre of the battlefield
             if(moveCount >= 2)
             {
@@ -54,7 +60,7 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Method for moving robot in a square pattern, when sentry border wall is 300
+     * Method for moving Robot in a square pattern, when sentry border wall is 300
      */
     private void squareMove()
     {
@@ -81,13 +87,13 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Scanned robot event handler
+     * Scanned Robot event handler
      * @param sre Shorter for ScannedRobotEvent
      */
     public void onScannedRobot(ScannedRobotEvent sre)
     {
         if(!sre.isSentryRobot()) {
-            moveCount = 0; // if robot is not a sentry robot, reset move count
+            moveCount = 0; // if Robot is not a sentry robot, reset move count
 
             // Get enemy position
             eDistance = sre.getDistance();
@@ -100,10 +106,10 @@ public class Potujniy extends Robot{
             eX = pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
             eY = pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
 
-            // Added this because robot doesn't move if his radar is watching right into the center of enemy robot
-            double angleDifference = Math.abs(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
-            if (angleDifference > 1.0F) {
-                turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
+            // Added this because Robot doesn't move if his radar is watching right into the center of Enemy Robot
+            double angleDifference = returnDegreesDifference(eX, eY, pX, pY, pGunHeading);
+            if (Math.abs(angleDifference) > 1.0F) {
+                turnGunLeft(angleDifference);
             }
 
             // Small heat check
@@ -151,11 +157,11 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Method to calculate the amount of degrees to turn after calculating the difference in degrees
+     * Method to calculate the number of degrees to turn after calculating the difference in degrees
      * Uses only for positive values
      * @param endDegree
      * @param startDegree
-     * @return Amount of degrees to turn
+     * @return Number of degrees to turn
      */
     private double getTurnAmount(double endDegree, double startDegree)
     {
@@ -192,12 +198,12 @@ public class Potujniy extends Robot{
 
     /**
      * Convert degrees to proper format
-     * Where 90 degrees is North
-     * 180 degrees is West
-     * 270 degrees is South
+     * Where 90 degrees is North,
+     * 180 degrees is West,
+     * 270 degrees is South,
      * 360 or 0 degrees is East
      * @param degrees Angle in degrees
-     * @return Angle in proper format
+     * @return Angle in Proper format
      */
     private double convertToProperDegrees(double degrees)
     {
@@ -211,10 +217,10 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Initialize robot settings
+     * Initialize Robot settings
      */
     private void initialize() {
-        // Let robot do a turn without adjusting gun
+        // Let Robot do a turn without adjusting the gun
         setAdjustGunForRobotTurn(true);
 
         // Set robot colors
@@ -237,7 +243,7 @@ public class Potujniy extends Robot{
     }
 
     /**
-     * Method to move robot to a position
+     * Method to move Robot to a position
      * @param endPosX X coordinate of the end position
      * @param endPosY Y coordinate of the end position
      *                If X 400 and Y 400, robot will move to the center of the battlefield
