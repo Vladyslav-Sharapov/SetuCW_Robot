@@ -1,16 +1,21 @@
 package SetuCW;
 
+// Created by:
+// Vladyslav Sharapov,
+// Vladyslav Amelin,
+// Andrii Russkykh
+// For Games Fleadh 2026
+
 import java.awt.Color;
 import robocode.*;
 
 public class Potujniy extends Robot{
 
-	private final long TARGETING_TIME = 30;
-	private long lastTimeSeen;
+    // Battlefield dimensions
     final double BATTLE_FIELD_WIDTH = 800.0F;
     final double BATTLE_FIELD_HEIGHT = 800.0F;
 
-    // Potujniy's variables, where p is short for Potujniy.
+    // Potujniy's variables, wh ere p is short for Potujniy.
     double pX;
     double pY;
     double pEnergy;
@@ -18,78 +23,118 @@ public class Potujniy extends Robot{
     double pGunHeading;
     double pHeading;
     double pRadarHeading;
+    double eDirection;
 
     // Targeting variables
     double eX;
     double eY;
     double eDistance;
 
-    public void run() 
-	{
+    // Move count variables
+    int moveCount = 0;
+    int moveCount2 = 0;
+
+    public void run()
+    {
 
         initialize();
         scanTowardsCentre();
+        moveToPosition(400, 400);
+        scanTowardsCentre();
 
-    while (true)
-	{
-       		if(getTime() - lastTimeSeen > TARGETING_TIME)
-			{
-				scanTowardsCentre();
-			}	
-			else
-			{
-                moveToPosition(400, 400);
-			}
-       }
-    }
+        while (true)
+        {
+            // If Robot has moved 2 times and hasn't seen any enemies,
+            // it will scan towards the centre of the battlefield
+            if(moveCount >= 2)
+            {
+                scanTowardsCentre();
+            }
+            else
+            {
+                squareMove();
+            }
+            moveCount++;
 
-    public void onScannedRobot(ScannedRobotEvent sre)
-	{
-        if(!sre.isSentryRobot()) {
-            lastTimeSeen = getTime(); //Updates time stamp when an enemy was seen last time
-
-            eDistance = sre.getDistance();
-
-
-		
-		    double absoluteBearing =  getHeading() + sre.getBearing();//Calculates absolute bearing to the enemy
-
-            this.eX = this.pX + Math.cos(Math.toRadians(absoluteBearing)) * eDistance;
-            this.eY = this.pY + Math.sin(Math.toRadians(absoluteBearing)) * eDistance;
-
-		    double turnGun =  normalizeAngle(absoluteBearing - getGunHeading());//Calculates the target angle to rotatate gun
-
-            System.out.println(turnGun);
-            turnGunRight(turnGun);
-            fire(calculateFirePower());
         }
     }
 
     /**
-     * This is an algorithm that calculates the optimal firepower based on the distance to the enemy robot
+     * Method for moving Robot in a square pattern, when sentry border wall is 300
+     */
+    private void squareMove()
+    {
+        switch (moveCount2) {
+            case 0:
+                moveToPosition(465, 465);
+                moveCount2++;
+                break;
+            case 1:
+                moveToPosition(335, 465);
+                moveCount2++;
+                break;
+            case 2:
+                moveToPosition(335, 335);
+                moveCount2++;
+                break;
+            case 3:
+                moveToPosition(465, 335);
+                moveCount2 = 0;
+                break;
+
+        }
+
+    }
+
+    /**
+     * Scanned Robot event handler
+     * @param sre Shorter for ScannedRobotEvent
+     */
+    public void onScannedRobot(ScannedRobotEvent sre)
+    {
+        if(!sre.isSentryRobot()) {
+            moveCount = 0; // if Robot is not a sentry robot, reset move count
+
+            // Get enemy position
+            eDistance = sre.getDistance();
+            eDirection = pHeading - sre.getBearing();
+            if (eDirection >= 360) { // Correcting for negative values
+                eDirection -= 360;
+            }
+
+            // Get enemy X & Y position using trigonometry
+            eX = pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
+            eY = pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
+
+            // Added this because Robot doesn't move if his radar is watching right into the center of Enemy Robot
+            double angleDifference = returnDegreesDifference(eX, eY, pX, pY, pGunHeading);
+            if (Math.abs(angleDifference) > 1.0F) {
+                turnGunLeft(angleDifference);
+            }
+
+            // Small heat check
+            if (pGunHeat == 0) {
+                fire(calculateFirePower());
+            }
+        }
+    }
+
+    /**
+     * Method for calculating the firepower based on the distance to the enemy
+     * Where 0.1 is the minimum firepower and 3.0 is the maximum firepower
+     * 300 where is minimum distance for calculation
+     * @return Firepower value
      */
     private double calculateFirePower()
     {
         double distance = Math.max(1.0F, eDistance);
-        return Math.min(3.0F, Math.max(0.1F, (400.0F / distance) * 3.0F));
+        return Math.min(3.0F, Math.max(0.1F, (300.0F / distance) * 3.0F));
     }
 
-    public void onHitRobot(HitRobotEvent hre){
-        this.turnRight(180);
-    }
-	
-	private double normalizeAngle(double angle)
-	{
-		return (angle + 180) % 360 - 180;//Normalizes angle between -180 and 180
-	}
-
-    public void onHitByBullet(HitByBulletEvent hbe){
-        // this.turnRight(180);
-    }
-    public void onHitWall(HitWallEvent hwe){
-        // this.turnRight(180);
-    }
-
+    /**
+     * Status event handler
+     * @param se shorter for StatusEvent
+     */
     public void onStatus(StatusEvent se) {
         RobotStatus status = se.getStatus();
 
@@ -97,104 +142,130 @@ public class Potujniy extends Robot{
         pY = status.getY();
         pEnergy = status.getEnergy();
         pGunHeat = status.getGunHeat();
-        pGunHeading = status.getGunHeading();
-        pHeading = normalizeAngle(status.getHeading());
-        pRadarHeading = normalizeAngle(status.getRadarHeading());
+        pGunHeading = convertToProperDegrees(status.getGunHeading());
+        pHeading = convertToProperDegrees(status.getHeading());
+        pRadarHeading = convertToProperDegrees(status.getRadarHeading());
     }
 
     /**
-     * Rotates the radar towards the center of the battlefield by calculating the shortest angular
-     * difference required to align the radar's current heading with the direction of the center.
-     * ---------------------------
-     * The method determines the angular difference between the robot's radar heading and the
-     * direction of the battlefield center using the `returnDegressDifference` helper method.
-     * It then applies a full 360-degree sweep to the radar in the calculated direction.
+     * Method for scanning towards the centre of the battlefield
      */
     private void scanTowardsCentre()
     {
-        double degrees_difference = returnDegreesDifference((BATTLE_FIELD_WIDTH / 2), (BATTLE_FIELD_HEIGHT / 2), pX, pY, pRadarHeading);
-        turnRadarLeft(360 * (degrees_difference / Math.abs(degrees_difference)));
+        double degreesDifference = returnDegreesDifference((BATTLE_FIELD_WIDTH / 2), (BATTLE_FIELD_HEIGHT / 2), pX, pY, pRadarHeading);
+        turnRadarLeft(360 * (degreesDifference / Math.abs(degreesDifference)));
     }
 
     /**
-     * Calculates the shortest turn amount in degrees between two angles,
-     * ensuring the result is within the range of -180 to 180 degrees.
-     *
-     * @param end_Degree   the target angle in degrees
-     * @param start_Degree the starting angle in degrees
-     * @return the shortest turn amount in degrees to reach the target angle
-     *         from the starting angle
+     * Method to calculate the number of degrees to turn after calculating the difference in degrees
+     * Uses only for positive values
+     * @param endDegree
+     * @param startDegree
+     * @return Number of degrees to turn
      */
-    private double getTurnAmount(double end_Degree, double start_Degree)
+    private double getTurnAmount(double endDegree, double startDegree)
     {
-        double turn_amount = end_Degree - start_Degree;
+        double turnAmount = endDegree - startDegree;
 
-        if (turn_amount > 180)
+        if (turnAmount > 180)
         {
-            turn_amount -= 360;
+            turnAmount -= 360;
         }
-        else if (turn_amount < -180)
+        else if (turnAmount < -180)
         {
-            turn_amount += 360;
+            turnAmount += 360;
         }
 
-        return turn_amount;
+        return turnAmount;
     }
 
     /**
-     * Calculates the angular difference in degrees between a point and the heading of a reference object.
-     * The angular difference is derived by determining the shortest turn amount required to align the
-     * heading with the direction of the point.
-     *
-     * @param poX the x-coordinate of the point of interest
-     * @param poY the y-coordinate of the point of interest
-     * @param fromX the x-coordinate of the reference object's position
-     * @param fromY the y-coordinate of the reference object's position
-     * @param thingHeading the current heading angle of the reference object in degrees
-     * @return the shortest turn amount in degrees to align the reference object's heading
-     *         with the direction of the point
+     * Method to calculate the difference in degrees between two points
+     * @param endX X coordinate of the end point
+     * @param endY Y coordinate of the end point
+     * @param originX X coordinate of the origin point
+     * @param originY Y coordinate of the origin point
+     * @param currentHeading Current heading of the robot
+     * @return Difference in degrees between the two points
      */
-    private double returnDegreesDifference(double poX, double poY, double fromX, double fromY, double thingHeading)
+    private double returnDegreesDifference(double endX, double endY, double originX, double originY, double currentHeading)
     {
-        double relative_x = poX - fromX;
-        double relative_y = poY - fromY;
-        double point_degrees = Math.toDegrees(Math.atan2(relative_y, relative_x));
-        return getTurnAmount(point_degrees, thingHeading);
+        double relativeX = endX - originX;
+        double relativeY = endY - originY;
+        double pointDegrees = Math.toDegrees(Math.atan2(relativeY, relativeX));
+        return getTurnAmount(pointDegrees, currentHeading);
     }
 
     /**
-     * Initializes the robot's configuration and settings during startup.
+     * Convert degrees to proper format
+     * Where 90 degrees is North,
+     * 180 degrees is West,
+     * 270 degrees is South,
+     * 360 or 0 degrees is East
+     * @param degrees Angle in degrees
+     * @return Angle in Proper format
+     */
+    private double convertToProperDegrees(double degrees)
+    {
+        double properDegrees = 90 - degrees;
+
+        if (properDegrees < 0)
+        {
+            properDegrees += 360;
+        }
+        return properDegrees;
+    }
+
+    /**
+     * Initialize Robot settings
      */
     private void initialize() {
-        // Let
-        this.setAdjustGunForRobotTurn(true);
+        // Let Robot do a turn without adjusting the gun
+        setAdjustGunForRobotTurn(true);
 
         // Set robot colors
-        this.setBodyColor(new Color(0x00, 0x00, 0x00)); // Black
-        this.setGunColor(new Color(0x32, 0x00, 0x00)); // Dark Red
-        this.setRadarColor(new Color(0xFF, 0x00, 0x00)); // Red
-        this.setBulletColor(new Color(0xFF, 0xD3, 0x9B)); // Burly wood
-        this.setScanColor(new Color(0xCA, 0xFF, 0x70)); // Olive
+        setBodyColor(new Color(0x00, 0x00, 0x00)); // Black
+        setGunColor(new Color(0x32, 0x00, 0x00)); // Dark Red
+        setRadarColor(new Color(0xFF, 0x00, 0x00)); // Red
+        setBulletColor(new Color(0xFF, 0xD3, 0x9B)); // Burly wood
+        setScanColor(new Color(255, 255, 255)); // White
     }
 
+    /**
+     * Win event handler
+     * @param we
+     */
+    public void onWin(WinEvent we)
+    {
+        setBodyColor(Color.YELLOW);
+        setGunColor(Color.BLUE);
+        setRadarColor(Color.BLUE);
+    }
+
+    /**
+     * Method to move Robot to a position
+     * @param endPosX X coordinate of the end position
+     * @param endPosY Y coordinate of the end position
+     *                If X 400 and Y 400, robot will move to the center of the battlefield
+     */
     public void moveToPosition(double endPosX, double endPosY)
-	{
-		double directionX = endPosX - pX;
-		double directionY = endPosY - pY;
-		
-		double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
-		double angleTurn = angle - pHeading;
-		if(angleTurn > 360)
-		{
-			angleTurn -= 360;
-		}
-		if(angleTurn < -360)
-		{
-			angleTurn += 360;
-		}
-		turnRight(angleTurn);
-		
-		double distance = Math.sqrt(directionX * directionX + directionY * directionY);
-		ahead(distance);
-	}
+    {
+        double directionX = endPosX - pX;
+        double directionY = endPosY - pY;
+
+        double angle = Math.toDegrees(Math.atan2(directionX ,directionY));
+        double angleTurn = angle - getHeading();
+        if(angleTurn > 360)
+        {
+            angleTurn -= 360;
+        }
+        if(angleTurn < -360)
+        {
+            angleTurn += 360;
+        }
+        turnRight(angleTurn);
+
+        double distance = Math.sqrt(directionX * directionX + directionY * directionY);
+        ahead(distance);
+    }
 }// end of class
