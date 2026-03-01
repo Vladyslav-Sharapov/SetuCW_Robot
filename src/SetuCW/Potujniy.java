@@ -5,6 +5,7 @@ import robocode.*;
 
 public class Potujniy extends Robot{
 
+    // Battlefield dimensions
     final double BATTLE_FIELD_WIDTH = 800.0F;
     final double BATTLE_FIELD_HEIGHT = 800.0F;
 
@@ -23,6 +24,7 @@ public class Potujniy extends Robot{
     double eY;
     double eDistance;
 
+    // Move count variables
     int moveCount = 0;
     int moveCount2 = 0;
 
@@ -36,6 +38,8 @@ public class Potujniy extends Robot{
 
         while (true)
         {
+            // If robot has moved 2 times and hasn't seen any enemies
+            // it will scan towards the centre of the battlefield
             if(moveCount >= 2)
             {
                 scanTowardsCentre();
@@ -50,7 +54,7 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
+     * Method for moving robot in a square pattern, when sentry border wall is 300
      */
     private void squareMove()
     {
@@ -77,27 +81,32 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @param sre
+     * Scanned robot event handler
+     * @param sre Shorter for ScannedRobotEvent
      */
     public void onScannedRobot(ScannedRobotEvent sre)
     {
         if(!sre.isSentryRobot()) {
-            moveCount = 0;
+            moveCount = 0; // if robot is not a sentry robot, reset move count
 
+            // Get enemy position
             eDistance = sre.getDistance();
             eDirection = pHeading - sre.getBearing();
-            if (eDirection >= 360) {
+            if (eDirection >= 360) { // Correcting for negative values
                 eDirection -= 360;
             }
 
+            // Get enemy X & Y position using trigonometry
             eX = pX + Math.cos(Math.toRadians(eDirection)) * eDistance;
             eY = pY + Math.sin(Math.toRadians(eDirection)) * eDistance;
-            double abc = Math.abs(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
-            if (abc > 1.0F) {
+
+            // Added this because robot doesn't move if his radar is watching right into the center of enemy robot
+            double angleDifference = Math.abs(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
+            if (angleDifference > 1.0F) {
                 turnGunLeft(returnDegreesDifference(eX, eY, pX, pY, pGunHeading));
             }
 
+            // Small heat check
             if (pGunHeat == 0) {
                 fire(calculateFirePower());
             }
@@ -105,8 +114,10 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @return
+     * Method for calculating the firepower based on the distance to the enemy
+     * Where 0.1 is the minimum firepower and 3.0 is the maximum firepower
+     * 300 where is minimum distance for calculation
+     * @return Firepower value
      */
     private double calculateFirePower()
     {
@@ -115,8 +126,8 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @param se
+     * Status event handler
+     * @param se shorter for StatusEvent
      */
     public void onStatus(StatusEvent se) {
         RobotStatus status = se.getStatus();
@@ -131,7 +142,7 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
+     * Method for scanning towards the centre of the battlefield
      */
     private void scanTowardsCentre()
     {
@@ -140,10 +151,11 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
+     * Method to calculate the amount of degrees to turn after calculating the difference in degrees
+     * Uses only for positive values
      * @param endDegree
      * @param startDegree
-     * @return
+     * @return Amount of degrees to turn
      */
     private double getTurnAmount(double endDegree, double startDegree)
     {
@@ -162,13 +174,13 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @param endX
-     * @param endY
-     * @param originX
-     * @param originY
-     * @param currentHeading
-     * @return
+     * Method to calculate the difference in degrees between two points
+     * @param endX X coordinate of the end point
+     * @param endY Y coordinate of the end point
+     * @param originX X coordinate of the origin point
+     * @param originY Y coordinate of the origin point
+     * @param currentHeading Current heading of the robot
+     * @return Difference in degrees between the two points
      */
     private double returnDegreesDifference(double endX, double endY, double originX, double originY, double currentHeading)
     {
@@ -179,9 +191,13 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @param degrees
-     * @return
+     * Convert degrees to proper format
+     * Where 90 degrees is North
+     * 180 degrees is West
+     * 270 degrees is South
+     * 360 or 0 degrees is East
+     * @param degrees Angle in degrees
+     * @return Angle in proper format
      */
     private double convertToProperDegrees(double degrees)
     {
@@ -195,10 +211,10 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
+     * Initialize robot settings
      */
     private void initialize() {
-        // Let
+        // Let robot do a turn without adjusting gun
         setAdjustGunForRobotTurn(true);
 
         // Set robot colors
@@ -210,7 +226,7 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
+     * Win event handler
      * @param we
      */
     public void onWin(WinEvent we)
@@ -221,9 +237,10 @@ public class Potujniy extends Robot{
     }
 
     /**
-     *
-     * @param endPosX
-     * @param endPosY
+     * Method to move robot to a position
+     * @param endPosX X coordinate of the end position
+     * @param endPosY Y coordinate of the end position
+     *                If X 400 and Y 400, robot will move to the center of the battlefield
      */
     public void moveToPosition(double endPosX, double endPosY)
     {
